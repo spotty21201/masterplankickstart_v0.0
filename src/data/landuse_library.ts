@@ -1,0 +1,81 @@
+import { LandUseCategory } from '../types/masterplan';
+
+export const LAND_USE_LIBRARY: LandUseCategory[] = [
+  {
+    id: 'res_landed',
+    label: 'Residential Landed Zone',
+    group: 'Residential',
+    sellable: true,
+    defaultBand: { min: 40, max: 60, target: 50 },
+  },
+  {
+    id: 'res_cluster',
+    label: 'Cluster/townhouse zone',
+    group: 'Residential',
+    sellable: true,
+    defaultBand: { min: 5, max: 20, target: 10 },
+  },
+  {
+    id: 'res_apt',
+    label: 'Apartment zone',
+    group: 'Residential',
+    sellable: true,
+    defaultBand: { min: 0, max: 10, target: 0 },
+  },
+  {
+    id: 'com_ruko',
+    label: 'Ruko/strip retail zone',
+    group: 'Commercial',
+    sellable: true,
+    defaultBand: { min: 5, max: 15, target: 10 },
+  },
+  {
+    id: 'com_node',
+    label: 'Commercial Area',
+    group: 'Commercial',
+    sellable: true,
+    defaultBand: { min: 0, max: 10, target: 5 },
+  },
+  {
+    id: 'ind_zone',
+    label: 'Industrial Zone',
+    group: 'Industrial',
+    sellable: true,
+    defaultBand: { min: 0, max: 20, target: 0 },
+  },
+  {
+    id: 'civic_school',
+    label: 'School zone',
+    group: 'Civic',
+    sellable: false,
+    defaultBand: { min: 1, max: 5, target: 3 },
+  },
+  {
+    id: 'civic_health',
+    label: 'Health/clinic zone',
+    group: 'Civic',
+    sellable: false,
+    defaultBand: { min: 0.5, max: 2, target: 1 },
+  },
+  {
+    id: 'civic_worship',
+    label: 'Worship zone',
+    group: 'Civic',
+    sellable: false,
+    defaultBand: { min: 0.5, max: 2, target: 1 },
+  },
+  {
+    id: 'spec_cemetery',
+    label: 'Cemetery/memorial zone',
+    group: 'Special',
+    sellable: false,
+    defaultBand: { min: 0, max: 5, target: 2 },
+  },
+  {
+    id: 'emp_office',
+    label: 'Office/business zone',
+    group: 'Employment',
+    sellable: true,
+    defaultBand: { min: 0, max: 15, target: 8 },
+  },
+];
