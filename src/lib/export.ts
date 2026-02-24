@@ -208,20 +208,43 @@ export function exportToPDF(scenario: Scenario, areas: CalculatedAreas, feasibil
     return alloc.percentage > 0 && areaHa > 0;
   });
 
-  const rows = activeAllocations
-    .map((alloc) => {
-      const cat = catalog.find((c) => c.id === alloc.categoryId);
-      if (!cat) return '';
-      const ha = areas.allocationsHa[alloc.categoryId] ?? 0;
-      return `<tr>
-        <td>${cat.label}</td>
-        <td>${cat.group}</td>
-        <td style="text-align:right">${alloc.percentage.toFixed(1)}%</td>
-        <td style="text-align:right">${ha.toFixed(2)}</td>
-      </tr>`;
-    })
-    .join('');
-  const rowsHtml = rows || `<tr><td colspan="4" style="text-align:center;color:#6b7280;">No allocated land uses.</td></tr>`;
+  const formatHa = (value: number) => value.toFixed(areas.gsa < 10 ? 2 : 1);
+  const formatPct = (value: number) => `${value.toFixed(1)}%`;
+
+  const nonSellableAllocations = activeAllocations.filter((a) => {
+    const cat = catalog.find((c) => c.id === a.categoryId);
+    return !cat?.sellable;
+  });
+  const nonSellableNdaAllocations = nonSellableAllocations.filter((a) => {
+    const cat = catalog.find((c) => c.id === a.categoryId);
+    return (cat?.allocationBasis ?? 'NDA') === 'NDA';
+  });
+  const sellableAllocations = activeAllocations.filter((a) => {
+    const cat = catalog.find((c) => c.id === a.categoryId);
+    return !!cat?.sellable;
+  });
+
+  const roadsHa = areas.roadsHa;
+  const greenHa = areas.openSpaceHa;
+  const utilitiesHa = areas.utilitiesHa;
+  const publicFacilityHa = nonSellableNdaAllocations.reduce((sum, a) => sum + (areas.allocationsHa[a.categoryId] ?? 0), 0);
+  const sellableHa = sellableAllocations.reduce((sum, a) => sum + (areas.allocationsHa[a.categoryId] ?? 0), 0);
+  const totalNonSellableHa = areas.nca + areas.nsr + publicFacilityHa;
+  const totalNonSellablePct = areas.gsa > 0 ? (totalNonSellableHa / areas.gsa) * 100 : 0;
+  const totalSellablePct = areas.gsa > 0 ? (sellableHa / areas.gsa) * 100 : 0;
+
+  const sellableRowsHtml = sellableAllocations.map((alloc) => {
+    const cat = catalog.find((c) => c.id === alloc.categoryId);
+    if (!cat) return '';
+    const ha = areas.allocationsHa[alloc.categoryId] ?? 0;
+    const pctOfGsa = areas.gsa > 0 ? (ha / areas.gsa) * 100 : 0;
+    return `<tr>
+      <td class="item child">${cat.label}</td>
+      <td class="num">${formatHa(ha)}</td>
+      <td class="num">${formatPct(pctOfGsa)}</td>
+    </tr>`;
+  }).join('');
+  const fallbackSellableRow = `<tr><td class="item child muted">No allocated sellable land uses.</td><td class="num muted">0.0</td><td class="num muted">0.0%</td></tr>`;
 
   const html = `<!doctype html>
   <html>
@@ -239,9 +262,16 @@ export function exportToPDF(scenario: Scenario, areas: CalculatedAreas, feasibil
         th, td { border: 1px solid #e5e7eb; padding: 6px 8px; }
         th { background: #f3f4f6; text-align: left; }
         .right { text-align: right; }
-        .summary th:nth-child(3), .summary td:nth-child(3),
-        .summary th:nth-child(4), .summary td:nth-child(4) { text-align: right; }
-        .summary-footer td {
+        .summary { font-size: 12px; }
+        .summary th { background: #f8fafc; color: #374151; }
+        .summary th, .summary td { border-color: #e5e7eb; }
+        .summary .item { text-align: left; }
+        .summary .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .summary .child { padding-left: 24px; color: #4b5563; }
+        .summary .section-non td { background: #e5e7eb; font-weight: 700; color: #111827; }
+        .summary .section-sell td { background: #eff6ff; font-weight: 700; color: #111827; }
+        .summary .muted { color: #6b7280; }
+        .summary .footer td {
           background: #f8fafc;
           font-weight: 700;
           border-top: 2px solid #cbd5e1;
@@ -281,24 +311,42 @@ export function exportToPDF(scenario: Scenario, areas: CalculatedAreas, feasibil
           </table>
         </div>
       </div>
-      <h3 style="font-size: 12px; text-transform: uppercase; color: #6b7280;">Development Summary</h3>
-      <div class="summary-note">% column shown as % of Net Developable Area (NDA).</div>
+      <h3 style="font-size: 12px; text-transform: uppercase; color: #6b7280;">DEVELOPMENT SUMMARY</h3>
+      <div class="summary-note">% shown as % of Gross Site Area (GSA)</div>
       <table class="summary">
         <thead>
           <tr>
-            <th>Land Use</th>
-            <th>Group</th>
-            <th>% of Net Developable Area (NDA)</th>
-            <th>Area (ha)</th>
+            <th class="item">ITEM</th>
+            <th class="num">AREA (HA)</th>
+            <th class="num">%</th>
           </tr>
         </thead>
         <tbody>
-          ${rowsHtml}
-          <tr class="summary-footer">
-            <td>TOTAL SITE AREA</td>
-            <td style="text-align:center">—</td>
-            <td>100.0% (of GSA)</td>
-            <td>${areas.gsa.toFixed(1)}</td>
+          <tr>
+            <td class="item" style="font-weight:700;">EFFICIENCY</td>
+            <td class="num" style="font-weight:700;">${formatPct(areas.sraEfficiency)}</td>
+            <td class="num"></td>
+          </tr>
+          <tr class="section-non">
+            <td class="item">Non-Sellable Area</td>
+            <td class="num">${formatHa(totalNonSellableHa)}</td>
+            <td class="num">${formatPct(totalNonSellablePct)}</td>
+          </tr>
+          ${roadsHa > 0 ? `<tr><td class="item child">Roads & Infrastructure</td><td class="num">${formatHa(roadsHa)}</td><td class="num">${formatPct(areas.gsa > 0 ? (roadsHa / areas.gsa) * 100 : 0)}</td></tr>` : ''}
+          ${greenHa > 0 ? `<tr><td class="item child">Green Area</td><td class="num">${formatHa(greenHa)}</td><td class="num">${formatPct(areas.gsa > 0 ? (greenHa / areas.gsa) * 100 : 0)}</td></tr>` : ''}
+          ${utilitiesHa > 0 ? `<tr><td class="item child">Utilities & Other Reserves</td><td class="num">${formatHa(utilitiesHa)}</td><td class="num">${formatPct(areas.gsa > 0 ? (utilitiesHa / areas.gsa) * 100 : 0)}</td></tr>` : ''}
+          ${areas.nca > 0 ? `<tr><td class="item child">Constraint Allowance (NCA)</td><td class="num">${formatHa(areas.nca)}</td><td class="num">${formatPct(areas.ncaPercentage)}</td></tr>` : ''}
+          ${publicFacilityHa > 0 ? `<tr><td class="item child">Public Facility</td><td class="num">${formatHa(publicFacilityHa)}</td><td class="num">${formatPct(areas.gsa > 0 ? (publicFacilityHa / areas.gsa) * 100 : 0)}</td></tr>` : ''}
+          <tr class="section-sell">
+            <td class="item">Sellable Area</td>
+            <td class="num">${formatHa(sellableHa)}</td>
+            <td class="num">${formatPct(totalSellablePct)}</td>
+          </tr>
+          ${sellableRowsHtml || fallbackSellableRow}
+          <tr class="footer">
+            <td class="item">TOTAL SITE AREA</td>
+            <td class="num">${areas.gsa.toFixed(1)}</td>
+            <td class="num">100.0%</td>
           </tr>
         </tbody>
       </table>
