@@ -72,8 +72,8 @@ export default function App() {
               <LayoutDashboard className="text-white" size={20} />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-neutral-900">MasterPlan Kickstart</h1>
-              <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-sans">Release {scenario.version}</p>
+              <h1 className="text-lg font-semibold tracking-tight text-neutral-900">MasterPlan Kickstart v.0.0</h1>
+              <p className="text-[10px] uppercase tracking-wider text-neutral-500 font-sans">Developed by Kolabs.Design for AIM+HDA Collective</p>
             </div>
           </div>
 
